@@ -41,7 +41,7 @@ trees = [
     "Eucalyptus", "Ponderosa Pine", "American Holly", "Black Walnut", "Horse Chestnut"
 ]
 
-def makeTree():
+def make_tree():
     #get lat.
     lat = random.randint(-90_000, 90_000) / 1000.0
     lon = random.randint(-180_000, 180_000) / 1000.0
@@ -49,9 +49,9 @@ def makeTree():
     age = random.randint(8, 100)
     species = random.choice(trees)
     visits = random.randint(0, 100)
-    url = [f"example.com/api/v1/images/{uuid.uuid4()}.jpg" for _ in range(random.randint(1, 10))]
+    url = [f"127.0.0.1:5000/api/v1/images/{uuid.uuid4()}.jpg" for _ in range(random.randint(1, 10))]
     return {
-            "location": [lat, lon],
+            "location": {"latitude": lat, "longitude": lon},
             "type": species,
             "owner": name,
             "age": age,
@@ -59,17 +59,17 @@ def makeTree():
             "images": url
             }
 
-def createTree(tree = None):
-    postUrl = URL + "trees"
+def create_tree(tree = None):
+    req_url = URL + "trees"
     if tree is None:
-        tree = makeTree()
-    response = requests.post(postUrl, json=tree)
+        tree = make_tree()
+    response = requests.post(req_url, json=tree)
     print(response.status_code)
     print(response.json())
 
-def listTrees():
-    postUrl = URL + "trees"
-    response = requests.get(postUrl)
+def list_trees():
+    req_url = URL + "trees"
+    response = requests.get(req_url)
     print(response.status_code)
     print(response.json())
 
