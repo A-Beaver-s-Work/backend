@@ -34,3 +34,40 @@ def upload_image():
 @api.route("/images/<name>", methods=["GET"])
 def download_image(name):
     return send_from_directory(current_app.config["UPLOAD_FOLDER"], name)
+
+@api.route("/trees/<uid>", methods=["PUT", 'DELETE'])
+def update(uid):
+    if request.method == "PUT":
+        if request.headers.get("Content-Type") != "application/json":
+            return "Unsupported Media Type: format all requests using JSON", 415
+
+        body = request.get_json()
+
+        expected_attrs = ["type", "owner", "age", "visits", "images"]
+        for attr in expected_attrs:
+            if body.get(attr) == None:
+                return f"invalid tree: expected `{attr}` attribute", 400
+
+        if body.get("location") != None:
+            location = body.get("location")
+            if not {"latitude", "longitude"}.issubset(location.keys()):
+                return "invalid location data: expected latitude and longitude or neither", 400
+
+            if not (-180 <= location.get("longitude") <= 180) or not (-90 <= location.get("longitude") <= 90):
+                return "longitude should be in range [-180, 180] and latitude should be in range [-90, 90]", 400
+
+        if not (isinstance(body.get("visits"), int) and isinstance(body.get("age"), int)):
+            return "visits and age should be positive integers", 400
+
+        if not isinstance(body.get("images"), list):
+            return "images must be a list", 400
+
+        if body.get("age") < 0 or body.get("visits") < 0:
+            return "visits and age should be positive", 400 
+        
+        ### TODO: Actually update data ###
+        return "Ok", 200 
+
+    if request.method == "DELETE":
+        ### TODO: Actually delete data ###
+        return "Ok", 200
