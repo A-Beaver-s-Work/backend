@@ -1,7 +1,7 @@
 import os
 import time
 
-from flask import Blueprint, request, url_for, current_app, redirect
+from flask import Blueprint, request, url_for, current_app, redirect, send_from_directory
 from werkzeug.utils import secure_filename
 
 api = Blueprint("api", __name__, template_folder="templates")
@@ -17,18 +17,20 @@ def allowed_file(filename):
 @api.route("/images", methods=["POST"])
 def upload_image():
     if 'image_upload' not in request.files:
-        return "No file part", 400
+        return "Request must include file with label 'image_upload', but none found.", 400
 
     image = request.files['image_upload']
     
     if image.filename == '':
-        return "No selected file"
+        return "Request must include file, but empty filename found.", 400
 
     if image and allowed_file(image.filename):
         filename = str(int(time.time())) + "_" + secure_filename(image.filename)
-        image.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-        return {"url": url_for("api.download_image", name=filename, _external=True)} 
+        image.save(os.path.join(current_app.config["UPLOAD_FOLDER"], filename))
+        return {"url": url_for("api.download_image", name=filename, _external=True)}, 200 
+
+    return "Invalid file type. Allowed are: [png, jpg, jpeg, webp].", 415
  
 @api.route("/images/<name>", methods=["GET"])
 def download_image(name):
-    return 418
+    return send_from_directory(current_app.config["UPLOAD_FOLDER"], name)
