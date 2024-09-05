@@ -1,3 +1,6 @@
+*.swp
+uploads/*
+
 # gitignore based on https://github.com/github/gitignore/blob/main/Python.gitignore and belongs to GitHub
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -6,6 +9,9 @@ __pycache__/
 
 # C extensions
 *.so
+
+# '''database'''
+super-good-db.pkl
 
 # Distribution / packaging
 .Python
