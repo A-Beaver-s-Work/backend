@@ -14,14 +14,15 @@ class Tree:
             if not isinstance(self.images, list):
                 raise TypeError("Images should be an instance of the list type")
 
+            self.date = Date(self.json['date'])
+
             try:
-                self.age = int(self.json['age'])
                 self.visits = int(self.json['visits'])
             except ValueError:
-                raise ValueError(f"Error converting age ({self.json['age']}) and visits ({self.json['visits']}) fields into integers")
+                raise ValueError(f"Error converting visits ({self.json['visits']}) field into integers")
 
-            if ((self.age < 0) or (self.visits < 0)):
-                raise ValueError(f"age ({self.age}) and visits ({self.visits}) fields should not be negative")
+            if self.visits < 0:
+                raise ValueError(f"visits ({self.visits}) field should not be negative")
 
         except KeyError:
             raise ValueError("One or more required fields missing")
@@ -62,3 +63,15 @@ class Location:
     def __init__(self, *, lat, long):
         self.latitude = lat
         self.longitude = long
+
+class Date:
+    def __init__(self, parsing):
+        if len(parsing) != 10:
+            raise ValueError("Date received in incorrect format (invalid length). Expected `dd/mm/yyyy`")
+
+        self.day = parsing[0:2]
+        self.month = parsing[3:5]
+        self.year = parsing[6:10]
+
+        if not (self.day.isdigit() and self.month.isdigit() and self.year.isdigit()):
+            raise ValueError("Date received in incorrect format. Expected `dd/mm/yyyy`")
