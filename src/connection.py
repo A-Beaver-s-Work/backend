@@ -11,7 +11,7 @@ def connect_to_mysql():
 
     return None
 
-def execute_sql(statement, fill, callback=None, commit=True):
+def execute_sql(statement, fill, callback=None, commit=True, dictionary = False):
     # TODO: connection pool
     # TODO: SECURITY!!!!
     ret = None
@@ -21,7 +21,7 @@ def execute_sql(statement, fill, callback=None, commit=True):
         logger.info("Failed to connect to mysql")
         raise ConnectionError("Couldn't connect to mysql") 
 
-    with cnx.cursor(buffered=True) as cursor:
+    with cnx.cursor(buffered=True, dictionary = dictionary) as cursor:
         try:
             cursor.execute(statement, fill)         
 
