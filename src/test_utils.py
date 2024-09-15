@@ -46,7 +46,7 @@ def make_tree():
     lat = random.randint(-90_000, 90_000) / 1000.0
     lon = random.randint(-180_000, 180_000) / 1000.0
     name = f"{random.choice(firstNames)} {random.choice(lastNames)}"
-    date = f"{random.randint(1, 28)} {random.randint(1, 12)} {random.randint(1, 2025)}}"
+    date = f"{str(random.randint(1, 28)).zfill(2)}/{str(random.randint(1, 12)).zfill(2)}/{str(random.randint(1, 2025)).zfill(4)}"
     species = random.choice(trees)
     visits = random.randint(0, 100)
     url = [f"127.0.0.1:5000/api/v1/images/{uuid.uuid4()}.jpg" for _ in range(random.randint(1, 10))]
@@ -65,12 +65,12 @@ def create_tree(tree = None):
         tree = make_tree()
     response = requests.post(req_url, json=tree)
     print(response.status_code)
-    print(response.json())
+    return response
 
 def list_trees():
     req_url = URL + "trees"
     response = requests.get(req_url)
     print(response.status_code)
-    print(response.json())
+    return response
 
 
