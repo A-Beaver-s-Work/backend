@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `tree` (
 	`breed` VARCHAR(255) NOT NULL,
 	`owner` VARCHAR(255) NOT NULL,
 	`date_planted` DATE NOT NULL,
-	`Visits` INT UNSIGNED NOT NULL,
+	`visits` INT UNSIGNED NOT NULL,
 	PRIMARY KEY (`tree_id`)
 );
 

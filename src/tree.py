@@ -1,5 +1,6 @@
 import uuid
 TOLERANCE = 0.0001
+from connection import execute_sql
 
 class Tree:
     """Initialize tree with dictionary containing parsed json, validate fields. Gives tree a UUID when finished"""
@@ -30,8 +31,13 @@ class Tree:
         #Everything is good, assign the tree a UUID if it exists, otherwise keep the old one
         if uid is None:
             self.uid = uuid.uuid4()
+            update = False
         else:
             self.uid = uid
+            update = True
+
+        # When everything is set, save to the database
+        self.save(update)
 
     """Check for Location field in JSON, returns either None if not found or two tuple of floats if field exists. Performs verification of data"""
     def parseLocation(self):
@@ -59,10 +65,41 @@ class Tree:
 
         return Location(lat=lat, long=lon)
     
-    def save(self, cnx):
-        if not cnx or not cnx.is_connected():
-            pass
-        return
+    def save(self, update:bool):
+        if not update:
+            if self.location:
+                statement = ("INSERT into tree (tree_id, location, breed, owner, date_planted, visits) "
+                    "VALUES (%(tree_id)s, GEOMETRY::Parse('POINT (%(location_x)s %(location_y)s NULL NULL)'), %(breed)s, %(owner)s, TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), %(visits)s)")
+                
+                fill = {"tree_id": self.uid, "location_x": self.location.longitude, "location_y": self.location.latitude, \
+                        "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, "visits": self.visits}
+
+            else:
+                statement = ("INSERT into tree (tree_id, location, breed, owner, date_planted, visits) "
+                    "VALUES (%(tree_id)s, NULL, %(breed)s, %(owner)s, TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), %(visits)s)")
+                
+                fill = {"tree_id": self.uid, "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, "visits": self.visits}
+
+
+        else:
+            if self.location:
+                statement = ("UPDATE trees "
+                            "SET location=GEOMETRY::Parse('POINT (%(location_x)s %(location_y)s NULL NULL)'), breed=%(breed)s, owner=%(owner)s, date_planted=TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), visits=%(visits)s "
+                            "WHERE tree_id=%(tree_id)s")
+                
+                fill = {"tree_id": self.uid, "location_x": self.location.longitude, "location_y": self.location.latitude, \
+                        "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, \
+                        "visits": self.visits}
+
+            else:
+                statement = ("UPDATE trees "
+                            "SET location=NULL, breed=%(breed)s, owner=%(owner)s, date_planted=TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), visits=%(visits)s "
+                            "WHERE tree_id=%(tree_id)s")
+                
+                fill = {"tree_id": self.uid, "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, "visits": self.visits}
+
+
+        execute_sql(statement=statement, fill=fill)
 
 class Location:
     def __init__(self, *, lat, long):

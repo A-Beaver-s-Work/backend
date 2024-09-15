@@ -1,11 +1,12 @@
 import mysql.connector
 from mysql.connector import errorcode
+from logger import logger
 
 def connect_to_mysql():
     try:
         return mysql.connector.connect(user='root', password='secretrootpass', host='db', database='abw', port=3306)
     except (mysql.connector.Error, IOError) as err:
-        logger.info("Failurd to connect, exiting without a connection: %s", err)
+        logger.info("Failure to connect, exiting without a connection: %s", err)
         return None
 
     return None

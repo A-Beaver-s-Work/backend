@@ -53,6 +53,7 @@ def update(uid):
             # ref post req
             return str(e), 400
 
+        # if made it past exception, Tree class should automatically update database
         return "Ok", 200 
 
     if request.method == "DELETE":
