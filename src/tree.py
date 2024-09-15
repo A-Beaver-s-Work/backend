@@ -1,6 +1,7 @@
 import uuid
 TOLERANCE = 0.0001
 from connection import execute_sql
+from datetime import date
 
 class Tree:
     """Initialize tree with dictionary containing parsed json, validate fields. Gives tree a UUID when finished"""
@@ -29,15 +30,7 @@ class Tree:
             raise ValueError("One or more required fields missing")
 
         #Everything is good, assign the tree a UUID if it exists, otherwise keep the old one
-        if uid is None:
-            self.uid = uuid.uuid4()
-            update = False
-        else:
-            self.uid = uid
-            update = True
-
-        # When everything is set, save to the database
-        self.save(update)
+        self.uid = uid if uid else str(uuid.uuid4())
 
     """Check for Location field in JSON, returns either None if not found or two tuple of floats if field exists. Performs verification of data"""
     def parseLocation(self):
@@ -65,41 +58,13 @@ class Tree:
 
         return Location(lat=lat, long=lon)
     
-    def save(self, update:bool):
-        if not update:
-            if self.location:
-                statement = ("INSERT into tree (tree_id, location, breed, owner, date_planted, visits) "
-                    "VALUES (%(tree_id)s, GEOMETRY::Parse('POINT (%(location_x)s %(location_y)s NULL NULL)'), %(breed)s, %(owner)s, TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), %(visits)s)")
-                
-                fill = {"tree_id": self.uid, "location_x": self.location.longitude, "location_y": self.location.latitude, \
-                        "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, "visits": self.visits}
+    def save(self):
+        execute_sql("DELETE from tree WHERE tree_id=%(uid)s", {"uid": self.uid})
 
-            else:
-                statement = ("INSERT into tree (tree_id, location, breed, owner, date_planted, visits) "
-                    "VALUES (%(tree_id)s, NULL, %(breed)s, %(owner)s, TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), %(visits)s)")
-                
-                fill = {"tree_id": self.uid, "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, "visits": self.visits}
-
-
-        else:
-            if self.location:
-                statement = ("UPDATE trees "
-                            "SET location=GEOMETRY::Parse('POINT (%(location_x)s %(location_y)s NULL NULL)'), breed=%(breed)s, owner=%(owner)s, date_planted=TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), visits=%(visits)s "
-                            "WHERE tree_id=%(tree_id)s")
-                
-                fill = {"tree_id": self.uid, "location_x": self.location.longitude, "location_y": self.location.latitude, \
-                        "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, \
-                        "visits": self.visits}
-
-            else:
-                statement = ("UPDATE trees "
-                            "SET location=NULL, breed=%(breed)s, owner=%(owner)s, date_planted=TO_DATE('%(dd)s/%(mm)s/%(yyyy)s', 'DD/MM/YYYY'), visits=%(visits)s "
-                            "WHERE tree_id=%(tree_id)s")
-                
-                fill = {"tree_id": self.uid, "breed": self.type, "owner": self.name, "dd": self.date.day, "mm": self.date.month, "yyyy": self.date.year, "visits": self.visits}
-
-
-        execute_sql(statement=statement, fill=fill)
+        execute_sql(("INSERT into tree (tree_id, location, breed, owner, date_planted, visits) " # Query
+            f"VALUES (%(tree_id)s, {'POINT(%(location_x)s, %(location_y)s)' if self.location else 'NULL'}, %(breed)s, %(owner)s, %(date)s, %(visits)s)"), # Params
+            {"tree_id": self.uid, "location_x": self.location.longitude if self.location else None, "location_y": self.location.latitude if self.location else None,
+             "breed": self.type, "owner": self.name, "date": date(int(self.date.year), int(self.date.month), int(self.date.day)), "visits": self.visits}) # Filled params
 
 class Location:
     def __init__(self, *, lat, long):

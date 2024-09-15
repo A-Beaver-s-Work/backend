@@ -32,6 +32,8 @@ def add_tree():
         # Security?
         return str(e), 400
 
+    parsed_tree.save()
+
     return {"uid": parsed_tree.uid}, 200
 
 @api.route("/trees", methods=['GET'])
@@ -53,7 +55,7 @@ def update(uid):
             # ref post req
             return str(e), 400
 
-        # if made it past exception, Tree class should automatically update database
+        parsed_tree.save()
         return "Ok", 200 
 
     if request.method == "DELETE":
