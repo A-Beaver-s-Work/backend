@@ -6,9 +6,37 @@ from flask import Blueprint, request, url_for, current_app, redirect, send_from_
 from werkzeug.utils import secure_filename
 from tree import Tree
 
+import logging
+
+import mysql.connector
+from mysql.connector import errorcode
+
 api = Blueprint("api", __name__, template_folder="templates")
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+logger = logging.getLogger("mysql.connector")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# Log to console
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# Also log to a file
+file_handler = logging.FileHandler(f"/usr/local/app/logs/cpy-{time.time()}.log")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler) 
+
+def connect_to_mysql():
+    try:
+        return mysql.connector.connect(user='root', password='secretrootpass', host='db', database='abw', port=3306)
+    except (mysql.connector.Error, IOError) as err:
+        logger.info("Failurd to connect, exiting without a connection: %s", err)
+        return None
+
+    return None
 
 # This doesn't actually check to be sure the file is the type it says it is... it just checks the extension
 # Security people should know why this is bad :)
@@ -70,6 +98,19 @@ def upload_image():
     if image and allowed_file(image.filename):
         filename = str(int(time.time())) + "_" + secure_filename(image.filename)
         image.save(os.path.join(current_app.config["UPLOAD_FOLDER"], filename))
+
+        cnx = connect_to_mysql()
+        if not cnx or not cnx.is_connected():
+            logger.info("Failed to connect to mysql")
+            return "Internal Server Error", 500
+
+        with cnx.cursor() as cursor:
+            cursor.execute("INSERT INTO `images` (filename) VALUES (%(filename)s)", {'filename': filename})         
+            cnx.commit()
+
+        logger.info(f"Inserted {filename} into `images` table")
+        cnx.close()
+
         return {"url": url_for("api.download_image", name=filename, _external=True)}, 200 
 
     return "Invalid file type. Allowed are: [png, jpg, jpeg, webp].", 415

@@ -37,9 +37,11 @@ services:
       - dbnet
     volumes:
       - uploads:/usr/local/app/uploads
+      - logs:/usr/local/app/logs
 networks:
   dbnet:
     driver: bridge
 volumes:
   db_data:
   uploads:
+  logs:

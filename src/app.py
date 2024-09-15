@@ -1,21 +1,6 @@
 from flask import Flask
 from api import api
 
-import mysql.connector
-from mysql.connector import errorcode
-
-#cnx = mysql.connector.connect(user='root', password='secretrootpass', host='db', database='abw', port=3306)
-#if cnx and cnx.is_connected():
-#    with cnx.cursor() as cursor:
-#        result = cursor.execute("DESCRIBE tree;")
-#        rows = cursor.fetchall()
-#        for row in rows:
-#            print(rows)
-#        print("done")
-#    cnx.close()
-#else:
-#    print("couldn't connect")
-
 app = Flask(__name__)
 
 app.config["UPLOAD_FOLDER"] = "/usr/local/app/uploads"

@@ -10,8 +10,12 @@ RUN . /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt
 COPY src ./src
 
 RUN addgroup -S app && adduser -S app -G app
+
 RUN mkdir /usr/local/app/uploads
+RUN mkdir /usr/local/app/logs
 RUN chown app:app /usr/local/app/uploads
+RUN chown app:app /usr/local/app/logs
+
 USER app
 
 EXPOSE 5000

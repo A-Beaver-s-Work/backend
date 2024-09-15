@@ -2,22 +2,22 @@ CREATE DATABASE IF NOT EXISTS `abw`;
 use `abw`;
 
 CREATE TABLE IF NOT EXISTS `tree` (
-	`TreeID` VARCHAR(255) NOT NULL,
-	`Location` POINT NULL,
-	`Breed` VARCHAR(255) NOT NULL,
-	`Owner` VARCHAR(255) NOT NULL,
-	`DatePlanted` DATE NOT NULL,
+	`tree_id` VARCHAR(255) NOT NULL,
+	`location` POINT NULL,
+	`breed` VARCHAR(255) NOT NULL,
+	`owner` VARCHAR(255) NOT NULL,
+	`date_planted` DATE NOT NULL,
 	`Visits` INT UNSIGNED NOT NULL,
-	PRIMARY KEY (`TreeID`)
+	PRIMARY KEY (`tree_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `images` (
-	`Filename` VARCHAR(255) NOT NULL PRIMARY KEY
+	`filename` VARCHAR(255) NOT NULL PRIMARY KEY
 	-- easily extensible if we want to store more information about the image...
 );
 
 CREATE TABLE IF NOT EXISTS `tree_images` (
-	`Filename` VARCHAR(255) NOT NULL,
-	`TreeID` VARCHAR(255) NOT NULL, -- tree id
-	PRIMARY KEY (`Filename`, `TreeID`)
+	`filename` VARCHAR(255) NOT NULL,
+	`tree_id` VARCHAR(255) NOT NULL, -- tree id
+	PRIMARY KEY (`filename`, `tree_id`)
 );
