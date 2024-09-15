@@ -53,22 +53,16 @@ def update(uid):
             # ref post req
             return str(e), 400
 
-        cnx = connect_to_mysql()
-        if not cnx or not cnx.is_connected():
-            logger.info("Failed to connect to mysql")
-            return "Internal Server Error", 500
-        
-        with cnx.cursor() as cursor:
-            cursor.execute("DELETE from tree WHERE tree_id=(%(uid)s)", {"uid": uid})
-            cnx.commit()
-
-        logger.info(f"Deleted tree_id {uid} from 'tree' table.")
-        cnx.close()
-
         return "Ok", 200 
 
     if request.method == "DELETE":
-        ### TODO: Actually delete data ###
+        try:
+            execute_sql("DELETE from tree WHERE tree_id=(%(uid)s)", {"uid": uid})
+        except:
+            return "Internal Server Error", 500
+
+        logger.info(f"Deleted tree_id {uid} from 'tree' table.")
+
         return "Ok", 200
 
 @api.route("/images", methods=["POST"])

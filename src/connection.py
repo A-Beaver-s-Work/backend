@@ -12,6 +12,7 @@ def connect_to_mysql():
 
 def execute_sql(statement, fill):
     # TODO: connection pool
+    # TODO: SECURITY!!!!
 
     cnx = connect_to_mysql()
     if not cnx or not cnx.is_connected():
