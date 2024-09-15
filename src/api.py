@@ -65,7 +65,7 @@ def getTrees():
         return str(e), 400
 
     # TODO: query for trees from MySQL database
-    return trees, 200
+    return {'trees':trees}, 200
 
 @api.route("/trees/<uid>", methods=["PUT", 'DELETE'])
 def update(uid):

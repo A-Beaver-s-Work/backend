@@ -3,6 +3,7 @@ TOLERANCE = 0.0001
 from connection import execute_sql, count_results
 from datetime import date
 from logger import logger
+import struct
 
 class Tree:
     """Initialize tree with dictionary containing parsed json, validate fields. Gives tree a UUID when finished"""
@@ -72,9 +73,13 @@ class Tree:
             return None
 
         # Handle special point
-        if isinstance(location, bytes):
+        if not isinstance(location, dict):
             try:
-                lat, lon = self.parsePoint(location)
+                logger.info(location)
+                ewkb = location
+                if isinstance(ewkb, str):
+                    ewkb = bytes(ewkb, 'ascii')
+                lat, lon = self.parseEWKB(ewkb)
             except ValueError as e:
                 raise e
         else:
@@ -92,8 +97,31 @@ class Tree:
         return Location(lat=lat, long=lon)
 
     # TODO: figure out how to parse the sql point format
-    def parsePoint(self, p):
-        return (0.0, 0.0)
+    # https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry#Well-known_binary
+
+    def parseEWKB(self, ewkb_data):
+        logger.info(ewkb_data)
+    # Check byte order
+        byte_order = ewkb_data[0]
+        if byte_order == 0x01:
+            endian = '<'
+        elif byte_order == 0x00:
+            endian = '>'
+        else:
+            raise ValueError("Unknown byte order")
+
+        logger.info(ewkb_data[1:5])
+        typ = struct.unpack(endian + 'I', ewkb_data[1:5])[0]
+        logger.info(typ)
+        if typ != 1:
+            raise ValueError("Not a 2D Point")
+        start = 9
+        logger.info(ewkb_data[start: start + 8])
+        # These are always little endian for some reason?
+        x = struct.unpack('<d', ewkb_data[start: start + 8])[0]
+        y = struct.unpack('<d', ewkb_data[start + 8: start + 2 * 8])[0]
+        logger.info([x, y])
+        return y, x
     
     def save(self):
         execute_sql("DELETE FROM tree WHERE tree_id=%(uid)s", {"uid": self.uid})
