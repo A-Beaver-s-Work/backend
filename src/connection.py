@@ -11,22 +11,32 @@ def connect_to_mysql():
 
     return None
 
-def execute_sql(statement, fill):
+def execute_sql(statement, fill, callback=None, commit=True):
     # TODO: connection pool
     # TODO: SECURITY!!!!
+    ret = None
 
     cnx = connect_to_mysql()
     if not cnx or not cnx.is_connected():
         logger.info("Failed to connect to mysql")
         raise ConnectionError("Couldn't connect to mysql") 
 
-    with cnx.cursor() as cursor:
+    with cnx.cursor(buffered=True) as cursor:
         try:
             cursor.execute(statement, fill)         
+
+            if callback:
+                ret = callback(cursor)
         except mysql.connector.Error as err: 
             logger.error(f"Syntax error in request ({statement}, {fill}): {err}")
             raise SyntaxError(f"Error parsing SQL: {err}")
 
-        cnx.commit()
+        if commit:
+            cnx.commit()
 
     cnx.close()
+
+    return ret
+
+def count_results(cursor):
+    return len(cursor.fetchall()) 

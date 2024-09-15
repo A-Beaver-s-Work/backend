@@ -1,7 +1,8 @@
 import uuid
 TOLERANCE = 0.0001
-from connection import execute_sql
+from connection import execute_sql, count_results
 from datetime import date
+from logger import logger
 
 class Tree:
     """Initialize tree with dictionary containing parsed json, validate fields. Gives tree a UUID when finished"""
@@ -59,12 +60,20 @@ class Tree:
         return Location(lat=lat, long=lon)
     
     def save(self):
-        execute_sql("DELETE from tree WHERE tree_id=%(uid)s", {"uid": self.uid})
+        execute_sql("DELETE FROM tree WHERE tree_id=%(uid)s", {"uid": self.uid})
+        execute_sql("DELETE FROM tree_images WHERE tree_id=%(uid)s", {"uid": self.uid})
 
-        execute_sql(("INSERT into tree (tree_id, location, breed, owner, date_planted, visits) " # Query
+        execute_sql(("INSERT INTO tree (tree_id, location, breed, owner, date_planted, visits) " # Query
             f"VALUES (%(tree_id)s, {'POINT(%(location_x)s, %(location_y)s)' if self.location else 'NULL'}, %(breed)s, %(owner)s, %(date)s, %(visits)s)"), # Params
             {"tree_id": self.uid, "location_x": self.location.longitude if self.location else None, "location_y": self.location.latitude if self.location else None,
              "breed": self.type, "owner": self.name, "date": date(int(self.date.year), int(self.date.month), int(self.date.day)), "visits": self.visits}) # Filled params
+        
+        for image in self.images:
+            if execute_sql("SELECT * FROM images WHERE url=%(url)s", {"url": image}, callback=count_results, commit=False) == 0:
+                execute_sql("INSERT INTO images (url) VALUES (%(url)s)", {"url": image}) 
+                logger.info(f"Inserted new image: {image}")
+
+            execute_sql("INSERT INTO tree_images (url, tree_id) VALUES (%(url)s, %(tree_id)s)", {"url": image, "tree_id": self.uid}) 
 
 class Location:
     def __init__(self, *, lat, long):

@@ -12,12 +12,12 @@ CREATE TABLE IF NOT EXISTS `tree` (
 );
 
 CREATE TABLE IF NOT EXISTS `images` (
-	`filename` VARCHAR(255) NOT NULL PRIMARY KEY
+	`url` VARCHAR(255) NOT NULL PRIMARY KEY
 	-- easily extensible if we want to store more information about the image...
 );
 
 CREATE TABLE IF NOT EXISTS `tree_images` (
-	`filename` VARCHAR(255) NOT NULL,
+	`url` VARCHAR(255) NOT NULL,
 	`tree_id` VARCHAR(255) NOT NULL, -- tree id
-	PRIMARY KEY (`filename`, `tree_id`)
+	PRIMARY KEY (`url`, `tree_id`)
 );

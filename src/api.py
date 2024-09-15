@@ -59,8 +59,11 @@ def update(uid):
         return "Ok", 200 
 
     if request.method == "DELETE":
+        # TODO: images are just stored forever atm
+
         try:
             execute_sql("DELETE from tree WHERE tree_id=(%(uid)s)", {"uid": uid})
+            execute_sql("DELETE from tree_images WHERE tree_id=(%(uid)s)", {"uid": uid})
         except:
             return "Internal Server Error", 500
 
@@ -81,15 +84,17 @@ def upload_image():
     if image and allowed_file(image.filename):
         filename = str(int(time.time())) + "_" + secure_filename(image.filename)
         image.save(os.path.join(current_app.config["UPLOAD_FOLDER"], filename))
+
+        url = url_for("api.download_image", name=filename, _external=True)
         
         try:
-            execute_sql("INSERT INTO `images` (filename) VALUES (%(filename)s)", {'filename': filename})
+            execute_sql("INSERT INTO `images` (url) VALUES (%(url)s)", {'url': url})
         except:
             return "Internal Server Error", 500
 
-        logger.info(f"Inserted {filename} into images table")
+        logger.info(f"Inserted {url} into images table")
     
-        return {"url": url_for("api.download_image", name=filename, _external=True)}, 200 
+        return {"url": url}, 200 
 
     return "Invalid file type. Allowed are: [png, jpg, jpeg, webp].", 415
  
