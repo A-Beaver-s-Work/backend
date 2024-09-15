@@ -58,6 +58,11 @@ class Tree:
             raise ValueError(f"Invalid location data {lat} {lon}")
 
         return Location(lat=lat, long=lon)
+    
+    def save(self, cnx):
+        if not cnx or not cnx.is_connected():
+            pass
+        return
 
 class Location:
     def __init__(self, *, lat, long):
