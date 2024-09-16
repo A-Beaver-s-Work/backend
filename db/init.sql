@@ -4,9 +4,9 @@ use `abw`;
 CREATE TABLE IF NOT EXISTS `tree` (
 	`tree_id` VARCHAR(255) NOT NULL,
 	`location` POINT NULL,
-	`breed` VARCHAR(255) NOT NULL,
+	`species` VARCHAR(255) NOT NULL,
 	`owner` VARCHAR(255) NOT NULL,
-	`date_planted` DATE NOT NULL,
+	`plant_date` DATE NOT NULL,
 	`visits` INT UNSIGNED NOT NULL,
 	PRIMARY KEY (`tree_id`)
 );

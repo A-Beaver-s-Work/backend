@@ -46,15 +46,15 @@ def make_tree():
     lat = random.randint(-90_000, 90_000) / 1000.0
     lon = random.randint(-180_000, 180_000) / 1000.0
     name = f"{random.choice(firstNames)} {random.choice(lastNames)}"
-    date = f"{str(random.randint(1, 28)).zfill(2)}/{str(random.randint(1, 12)).zfill(2)}/{str(random.randint(1, 2025)).zfill(4)}"
+    plant_date = f"{str(random.randint(1, 28)).zfill(2)}/{str(random.randint(1, 12)).zfill(2)}/{str(random.randint(1, 2025)).zfill(4)}"
     species = random.choice(trees)
     visits = random.randint(0, 100)
     url = [f"127.0.0.1:5000/api/v1/images/{uuid.uuid4()}.jpg" for _ in range(random.randint(1, 10))]
     return {
             "location": {"latitude": lat, "longitude": lon},
-            "type": species,
+            "species": species,
             "owner": name,
-            "date": date,
+            "plant_date": plant_date,
             "visits": visits,
             "images": url
             }

@@ -9,25 +9,16 @@ class Tree:
     """Initialize tree with dictionary containing parsed json, validate fields. Gives tree a UUID when finished"""
     def __init__(self, json, uid=None):
         self.json = json
-        self.location = self.parseLocation()
+        self.location = self.parse_location()
         try:
             self.name = self.json['owner']
-
-            # why is it breed in database but type in the schema :sob:
-            try:
-                self.type = self.json['type']
-            except KeyError:
-                self.type = self.json['breed']
+            self.species = self.json['species']
 
             self.images = self.json['images']
             if not isinstance(self.images, list):
                 raise TypeError("Images should be an instance of the list type")
 
-            # :sob:
-            try:
-                self.date = Date(self.json['date'])
-            except KeyError:
-                self.date = Date(self.json['date_planted'])
+            self.plant_date = Date(self.json['plant_date'])
 
             try:
                 self.visits = int(self.json['visits'])
@@ -43,22 +34,21 @@ class Tree:
         #Everything is good, assign the tree a UUID if it exists, otherwise keep the old one
         self.uid = uid if uid else str(uuid.uuid4())
 
-    def toJson(self):
+    def to_json(self):
         json =  {
                 'tree_id' : self.uid,
                 'owner' : self.name,
-                'date' : self.date.toStr(),
-                'type' : self.type,
+                'plant_date' : str(self.plant_date),
+                'species' : self.species,
                 'images' : self.images,
                 'visits' : self.visits
                 }
         if self.location:
-            json['location'] = [self.location.latitude,
-                                self.location.longitude]
+            json['location'] = self.location.to_json()
         return json
 
     """Check for Location field in JSON, returns either None if not found or two tuple of floats if field exists. Performs verification of data"""
-    def parseLocation(self):
+    def parse_location(self):
         # Check if optional location field exists
         # Style + Efficiency: return early if nothing needs to be done
         if "location" not in self.json:
@@ -75,11 +65,10 @@ class Tree:
         # Handle special point
         if not isinstance(location, dict):
             try:
-                logger.info(location)
                 ewkb = location
                 if isinstance(ewkb, str):
                     ewkb = bytes(ewkb, 'ascii')
-                lat, lon = self.parseEWKB(ewkb)
+                lat, lon = self.parse_ewkb(ewkb)
             except ValueError as e:
                 raise e
         else:
@@ -96,12 +85,8 @@ class Tree:
 
         return Location(lat=lat, long=lon)
 
-    # TODO: figure out how to parse the sql point format
-    # https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry#Well-known_binary
-
-    def parseEWKB(self, ewkb_data):
-        logger.info(ewkb_data)
-    # Check byte order
+    def parse_ewkb(self, ewkb_data):
+        # Check byte order
         byte_order = ewkb_data[0]
         if byte_order == 0x01:
             endian = '<'
@@ -110,27 +95,26 @@ class Tree:
         else:
             raise ValueError("Unknown byte order")
 
-        logger.info(ewkb_data[1:5])
         typ = struct.unpack(endian + 'I', ewkb_data[1:5])[0]
-        logger.info(typ)
         if typ != 1:
             raise ValueError("Not a 2D Point")
+
         start = 9
-        logger.info(ewkb_data[start: start + 8])
+
         # These are always little endian for some reason?
-        x = struct.unpack('<d', ewkb_data[start: start + 8])[0]
-        y = struct.unpack('<d', ewkb_data[start + 8: start + 2 * 8])[0]
-        logger.info([x, y])
-        return y, x
+        long = struct.unpack('<d', ewkb_data[start: start + 8])[0]
+        lat = struct.unpack('<d', ewkb_data[start + 8: start + 2 * 8])[0]
+
+        return lat, long 
     
     def save(self):
         execute_sql("DELETE FROM tree WHERE tree_id=%(uid)s", {"uid": self.uid})
         execute_sql("DELETE FROM tree_images WHERE tree_id=%(uid)s", {"uid": self.uid})
 
-        execute_sql(("INSERT INTO tree (tree_id, location, breed, owner, date_planted, visits) " # Query
-            f"VALUES (%(tree_id)s, {'POINT(%(location_x)s, %(location_y)s)' if self.location else 'NULL'}, %(breed)s, %(owner)s, %(date)s, %(visits)s)"), # Params
+        execute_sql(("INSERT INTO tree (tree_id, location, species, owner, plant_date, visits) " # Query
+            f"VALUES (%(tree_id)s, {'POINT(%(location_x)s, %(location_y)s)' if self.location else 'NULL'}, %(species)s, %(owner)s, %(plant_date)s, %(visits)s)"), # Params
             {"tree_id": self.uid, "location_x": self.location.longitude if self.location else None, "location_y": self.location.latitude if self.location else None,
-             "breed": self.type, "owner": self.name, "date": date(int(self.date.year), int(self.date.month), int(self.date.day)), "visits": self.visits}) # Filled params
+             "species": self.species, "owner": self.name, "plant_date": self.plant_date.to_date(), "visits": self.visits}) # Filled params
         
         for image in self.images:
             if execute_sql("SELECT * FROM images WHERE url=%(url)s", {"url": image}, callback=count_results, commit=False) == 0:
@@ -143,6 +127,9 @@ class Location:
     def __init__(self, *, lat, long):
         self.latitude = lat
         self.longitude = long
+
+    def to_json(self):
+        return {"latitude": self.latitude, "longitude": self.longitude}
 
 
 class Date:
@@ -163,5 +150,9 @@ class Date:
 
             if not (self.day.isdigit() and self.month.isdigit() and self.year.isdigit()):
                 raise ValueError("Date received in incorrect format. Expected `dd/mm/yyyy`")
-    def toStr(self):
+
+    def __str__(self):
         return f"{self.day}/{self.month}/{self.year}"
+    
+    def to_date(self):
+        return date(int(self.year), int(self.month), int(self.day))

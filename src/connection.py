@@ -40,3 +40,8 @@ def execute_sql(statement, fill, callback=None, commit=True, dictionary = False)
 
 def count_results(cursor):
     return len(cursor.fetchall()) 
+
+# make sure dictionary is set to true on this cursor
+def extract_all(cursor):
+    data = cursor.fetchall()
+    return data

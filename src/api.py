@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from tree import Tree
 from logger import logger
-from connection import execute_sql
+from connection import execute_sql, extract_all
 
 api = Blueprint("api", __name__, template_folder="templates")
 
@@ -18,12 +18,6 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 # But at the very least your browser shouldn't auto execute arbitrary code as long as the user doesn't do something wrong
 def allowed_file(filename):
     return '.' in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# make sure dictionary is set to true on this cursor
-def callback_extract_all(cursor):
-    data = cursor.fetchall()
-    #logger.info(data)
-    return data
 
 @api.route("/trees", methods=['POST'])
 def add_tree():
@@ -40,32 +34,33 @@ def add_tree():
 
     parsed_tree.save()
 
+    logger.info("Added Tree with ID ({parsed_tree.uid})")
+
     return {"uid": parsed_tree.uid}, 200
 
 @api.route("/trees", methods=['GET'])
-def getTrees():
-    logger.info("Get request!!!")
+def get_trees():
     try:
         tree_data = execute_sql("SELECT * FROM tree",
-                            callback = callback_extract_all,
-                            fill = None,
-                            dictionary = True)
+                            callback=extract_all,
+                            fill=None,
+                            dictionary=True)
+
         trees = []
         for tree in tree_data:
             uid = tree['tree_id']
             urls = execute_sql("SELECT url FROM tree_images WHERE tree_id=(%(uid)s)",
-                               callback = callback_extract_all,
+                               callback=extract_all,
                                fill = {"uid": uid})
-            tree['images'] = [x[0] for x in urls]
-            parsed_tree = Tree(tree)
-            trees.append(parsed_tree.toJson())
 
+            tree['images'] = [x[0] for x in urls]
+            parsed_tree = Tree(tree, uid=uid)
+            trees.append(parsed_tree.to_json())
             
     except Exception as e:
-        return str(e), 400
+        return str(e), 500
 
-    # TODO: query for trees from MySQL database
-    return {'trees':trees}, 200
+    return {'trees': trees}, 200
 
 @api.route("/trees/<uid>", methods=["PUT", 'DELETE'])
 def update(uid):
@@ -82,6 +77,8 @@ def update(uid):
             return str(e), 400
 
         parsed_tree.save()
+
+        logger.info(f"Updated Tree with ID ({uid})")
         return "Ok", 200 
 
     if request.method == "DELETE":
