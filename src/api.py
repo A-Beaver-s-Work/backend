@@ -4,7 +4,10 @@ import time
 
 from flask import Blueprint, request, url_for, current_app, redirect, send_from_directory
 from werkzeug.utils import secure_filename
+
 from tree import Tree
+from logger import logger
+from connection import execute_sql, extract_all
 
 api = Blueprint("api", __name__, template_folder="templates")
 
@@ -29,12 +32,35 @@ def add_tree():
         # Security?
         return str(e), 400
 
+    parsed_tree.save()
+
+    logger.info("Added Tree with ID ({parsed_tree.uid})")
+
     return {"uid": parsed_tree.uid}, 200
 
 @api.route("/trees", methods=['GET'])
-def getTrees():
-    # TODO: query for trees from MySQL database
-    return [], 200
+def get_trees():
+    try:
+        tree_data = execute_sql("SELECT * FROM tree",
+                            callback=extract_all,
+                            fill=None,
+                            dictionary=True)
+
+        trees = []
+        for tree in tree_data:
+            uid = tree['tree_id']
+            urls = execute_sql("SELECT url FROM tree_images WHERE tree_id=(%(uid)s)",
+                               callback=extract_all,
+                               fill = {"uid": uid})
+
+            tree['images'] = [x[0] for x in urls]
+            parsed_tree = Tree(tree, uid=uid)
+            trees.append(parsed_tree.to_json())
+            
+    except Exception as e:
+        return str(e), 500
+
+    return {'trees': trees}, 200
 
 @api.route("/trees/<uid>", methods=["PUT", 'DELETE'])
 def update(uid):
@@ -50,11 +76,22 @@ def update(uid):
             # ref post req
             return str(e), 400
 
-        ### TODO: Actually update data ###
+        parsed_tree.save()
+
+        logger.info(f"Updated Tree with ID ({uid})")
         return "Ok", 200 
 
     if request.method == "DELETE":
-        ### TODO: Actually delete data ###
+        # TODO: images are just stored forever atm
+
+        try:
+            execute_sql("DELETE from tree WHERE tree_id=(%(uid)s)", {"uid": uid})
+            execute_sql("DELETE from tree_images WHERE tree_id=(%(uid)s)", {"uid": uid})
+        except:
+            return "Internal Server Error", 500
+
+        logger.info(f"Deleted tree_id {uid} from 'tree' table.")
+
         return "Ok", 200
 
 @api.route("/images", methods=["POST"])
@@ -70,7 +107,17 @@ def upload_image():
     if image and allowed_file(image.filename):
         filename = str(int(time.time())) + "_" + secure_filename(image.filename)
         image.save(os.path.join(current_app.config["UPLOAD_FOLDER"], filename))
-        return {"url": url_for("api.download_image", name=filename, _external=True)}, 200 
+
+        url = url_for("api.download_image", name=filename, _external=True)
+        
+        try:
+            execute_sql("INSERT INTO `images` (url) VALUES (%(url)s)", {'url': url})
+        except:
+            return "Internal Server Error", 500
+
+        logger.info(f"Inserted {url} into images table")
+    
+        return {"url": url}, 200 
 
     return "Invalid file type. Allowed are: [png, jpg, jpeg, webp].", 415
  

@@ -1,5 +1,5 @@
 *.swp
-uploads/*
+src/uploads/*
 
 # gitignore based on https://github.com/github/gitignore/blob/main/Python.gitignore and belongs to GitHub
 # Byte-compiled / optimized / DLL files

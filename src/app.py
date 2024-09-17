@@ -3,7 +3,7 @@ from api import api
 
 app = Flask(__name__)
 
-app.config["UPLOAD_FOLDER"] = "uploads"
+app.config["UPLOAD_FOLDER"] = "/usr/local/app/uploads"
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1000 * 1000 # 5 mb
 
 app.register_blueprint(api, url_prefix="/api/v1")
